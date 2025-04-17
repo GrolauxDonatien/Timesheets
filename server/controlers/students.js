@@ -22,7 +22,7 @@ module.exports = ({ HTTPError, model, user, assert }) => {
         async addEntry(params) {
             if (await model.students.canUpdateSlice(user.user_id, params.slice_id, params.universe_id)) {
                 let slices = await model.students.slices(params.universe_id);
-                let cand = null;
+                let cand = null; // find correct slice
                 for(let i=0; i<slices.length; i++) {
                     if (slices[i].slice_id==params.slice_id) {
                         cand=slices[i];
@@ -30,7 +30,7 @@ module.exports = ({ HTTPError, model, user, assert }) => {
                     }
                 }
                 let due_date=cand.end_date;
-                if (due_date==0) {
+                if (due_date==0) { // no end date defined
                     due_date=new Date(cand.start_date);
                     due_date.setDate(due_date.getDate()+7);
                     due_date=due_date.toISOString().split('T')[0]

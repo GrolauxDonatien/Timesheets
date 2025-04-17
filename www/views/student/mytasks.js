@@ -56,7 +56,7 @@
             } else {
                 let due = new Date(d).toISOString().split('T')[0];
                 let now = new Date().toISOString().split('T')[0];
-                return `<input data-type="${key}" type="date" ${row.progress==100?"disabled":""} value="${due}" class="${due > now || row.progress == 100 ? "" : (due == now ? "due_today" : "due_late")}">`;
+                return `<input data-type="${key}" type="date" ${row.progress == 100 ? "disabled" : ""} value="${due}" class="${due > now || row.progress == 100 ? "" : (due == now ? "due_today" : "due_late")}">`;
             }
         }
     }
@@ -218,18 +218,17 @@
                                 length: row.length
                             },
                             success() {
-                                if (row.due_date==null && row.progress!=100) return;
-                                if (row.due_date==null && row.progress==100) {
+                                if (row.due_date == null && row.progress != 100) return;
+                                if (row.due_date == null && row.progress == 100) {
                                     let due_el = event.target.parentElement.previousSibling.querySelector('button');
                                     due_el.dispatchEvent(new Event('click'));
-                                    setTimeout(setDate,100);
-                                }
-                                if (row.due_date!=null) {
+                                    setTimeout(setDate, 100);
+                                } else {
                                     setDate();
-                                }
+                                } 
                                 function setDate() {
                                     let due_el = event.target.parentElement.previousSibling.querySelector('input');
-                                    if (row['due_date'] == null) {
+                                    if (row.progress == 100) {
                                         due_el.value = new Date().toISOString().split('T')[0];
                                         due_el.dispatchEvent(new Event('change'));
                                     } else {
