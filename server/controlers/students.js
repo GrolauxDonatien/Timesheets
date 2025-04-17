@@ -100,7 +100,7 @@ module.exports = ({ HTTPError, model, user, assert }) => {
                 throw new HTTPError("Nowhere to create task", 403);
             }
             if (await model.students.canUpdateSlice(user.user_id, cand.slice_id, params.universe_id)) {
-                return await model.students.addEntry(user.user_id, cand.slice_id, params.description);
+                return await model.students.addEntry(user.user_id, cand.slice_id, params.description, params.end_date);
             } else {
                 throw new HTTPError("Cannot create new task", 403);
             }

@@ -114,11 +114,11 @@ ORDER BY tasks.description
     )
                 `)).get(userid, universeid, universeid, sliceid) != null;
         },
-        async addEntry(userid, sliceid, description) {
+        async addEntry(userid, sliceid, description, due_date) {
             return await (await db.prepare(`
-INSERT INTO timeentries(user_id, slice_id, description, progress, length, creation)
-VALUES (?, ?,?,0,0,date())
-            `)).run(userid, sliceid, description);
+INSERT INTO timeentries(user_id, slice_id, description, due_date, progress, length, creation)
+VALUES (?,?,?,?,0,0,date())
+            `)).run(userid, sliceid, description, due_date);
         },
         async setEntry(userid, sliceid, entryid, progress, length, description) {
             if (description === undefined) {

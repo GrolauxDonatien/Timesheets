@@ -14,8 +14,8 @@
             th.innerText = kanbanTypes[i].description;
             tr.appendChild(th);
         }
-        let dnd=undefined;
-        let hidedone=document.getElementById("hidedone").checked;
+        let dnd = undefined;
+        let hidedone = document.getElementById("hidedone").checked;
         for (let i = 0; i < data.length; i++) {
             if (data[i].type_id != null) {
                 function allowDrop(event) {
@@ -28,12 +28,12 @@
                 function drop(event) {
                     event.preventDefault();
                     event.stopPropagation();
-                    let tds=event.target.parentElement.querySelectorAll("td");
+                    let tds = event.target.parentElement.querySelectorAll("td");
                     for (let j = 0; j < kanbanTypes.length; j++) {
-                        if (tds[j]==event.target) {
-                            let row=data[dnd];
-                            row.type_id=kanbanTypes[j].type_id;
-                            dnd=undefined;
+                        if (tds[j] == event.target) {
+                            let row = data[dnd];
+                            row.type_id = kanbanTypes[j].type_id;
+                            dnd = undefined;
                             mispaf.ajax({
                                 url: 'students/setGroupTask',
                                 data: {
@@ -51,8 +51,8 @@
                 }
                 let tr = document.createElement("TR");
                 tbody.appendChild(tr);
-                if (hidedone && data[i].type_id==kanbanTypes[kanbanTypes.length-1].type_id) {
-                    tr.style.display="none";
+                if (hidedone && data[i].type_id == kanbanTypes[kanbanTypes.length - 1].type_id) {
+                    tr.style.display = "none";
                 }
                 for (let j = 0; j < kanbanTypes.length; j++) {
                     let td = document.createElement("TD");
@@ -64,11 +64,11 @@
                         span.setAttribute("draggable", "true");
                         td.appendChild(span);
                         span.addEventListener("dragstart", (event) => {
-                            dnd=i;
-                        },  true);
+                            dnd = i;
+                        }, true);
                         span.addEventListener("dragend", (event) => {
-                            dnd=undefined;
-                        },  true);
+                            dnd = undefined;
+                        }, true);
                     }
                     tr.appendChild(td);
                 }
@@ -88,10 +88,10 @@
     }
     function refreshGantt() {
         if (document.getElementById("hidedone").checked) {
-            let orig=table.get();
-            let data=[];
-            for(let i=0; i<orig.length; i++) {
-                if (orig[i].type_id!=kanbanTypes[kanbanTypes.length-1].type_id) {
+            let orig = table.get();
+            let data = [];
+            for (let i = 0; i < orig.length; i++) {
+                if (orig[i].type_id != kanbanTypes[kanbanTypes.length - 1].type_id) {
                     data.push(orig[i]);
                 }
             }
@@ -212,18 +212,18 @@
                     success(response) {
                         table.set(response);
                         if (focus) {
-                            let last=0;
-                            for(let i=0; i<response.length; i++) {
-                                if (response[i].task_id>last) last=response[i].task_id;
+                            let last = 0;
+                            for (let i = 0; i < response.length; i++) {
+                                if (response[i].task_id > last) last = response[i].task_id;
                             }
-                            let rows=table.get();
-                            for(let i=0; i<rows.length; i++) {
-                                if (rows[i].task_id==last) {
-                                    table.focus(i,text);
+                            let rows = table.get();
+                            for (let i = 0; i < rows.length; i++) {
+                                if (rows[i].task_id == last) {
+                                    table.focus(i, text);
                                     break;
                                 }
                             }
-                        } 
+                        }
                         refreshGantt();
                         kanban(table.get());
                         let sel = tdiv.querySelector(".selected");
@@ -257,10 +257,10 @@
                     })
                 },
                 onevent: {
-                    render(event,row) {
+                    render(event, row) {
                         if (document.getElementById("hidedone").checked) {
-                            if (kanbanTypes[kanbanTypes.length-1].type_id==row.type_id) {
-                                event.target.parentElement.style.display='none';
+                            if (kanbanTypes[kanbanTypes.length - 1].type_id == row.type_id) {
+                                event.target.parentElement.style.display = 'none';
                             }
                         }
                     }
@@ -326,7 +326,8 @@
                                 url: "students/addEntryToLastOpenSlice",
                                 data: {
                                     universe_id: getUniverse(),
-                                    description: row.description
+                                    description: row.description,
+                                    end_date: row.end_date
                                 },
                                 success() {
                                     mispaf.page("mytasks");
@@ -391,14 +392,14 @@
 
     getKanbanTypes();
 
-    document.getElementById('hidedone').addEventListener('change',()=>{
-        localStorage.setItem("hidedone",""+document.getElementById('hidedone').checked);
+    document.getElementById('hidedone').addEventListener('change', () => {
+        localStorage.setItem("hidedone", "" + document.getElementById('hidedone').checked);
         mispaf.page(mispaf.page());
     });
 
     mispaf.addPageListener('enter:grouptasks', () => {
         cont = () => {
-            document.getElementById('hidedone').checked=(localStorage.getItem("hidedone")=="true");
+            document.getElementById('hidedone').checked = (localStorage.getItem("hidedone") == "true");
             board.setMyself(boardName(mispaf.user.login));
             table.refresh();
             cont = null;
