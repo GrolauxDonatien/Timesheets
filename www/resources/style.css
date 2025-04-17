@@ -494,7 +494,7 @@ select[multiple] {
 }
 
 .kanban [draggable] {
-    cursor: hand;
+    cursor: grab;
 }
 
 #universes .table-responsive, #users .table-responsive, #groups .table-responsive {
