@@ -21,7 +21,21 @@ module.exports = ({ HTTPError, model, user, assert }) => {
         },
         async addEntry(params) {
             if (await model.students.canUpdateSlice(user.user_id, params.slice_id, params.universe_id)) {
-                return await model.students.addEntry(user.user_id, params.slice_id, params.description);
+                let slices = await model.students.slices(params.universe_id);
+                let cand = null;
+                for(let i=0; i<slices.length; i++) {
+                    if (slices[i].slice_id==params.slice_id) {
+                        cand=slices[i];
+                        break;
+                    }
+                }
+                let due_date=cand.end_date;
+                if (due_date==0) {
+                    due_date=new Date(cand.start_date);
+                    due_date.setDate(due_date.getDate()+7);
+                    due_date=due_date.toISOString().split('T')[0]
+                }
+                return await model.students.addEntry(user.user_id, params.slice_id, params.description, due_date);
             } else {
                 throw new HTTPError("Cannot create new task", 403);
             }
