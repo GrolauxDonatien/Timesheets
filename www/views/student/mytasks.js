@@ -17,9 +17,9 @@
         ajax: websocket.ajax,
         broadcastListener: websocket.addBroadcastListener,
         canSend: true,
-        extraParams(){
+        extraParams() {
             return {
-                universe_id:document.getElementById("universe").value
+                universe_id: document.getElementById("universe").value
             }
         }
     });
@@ -47,17 +47,29 @@
     function getSlice() {
         return parseInt(slicesSelect.value);
     }
-    
+
     function renderDate(key) {
         return function (row) {
             let d = row[key];
             if (d == null) {
                 return `<button data-type="${key}" class="btn btn-outline-secondary btn-sm">Set</button>`;
             } else {
-                let due=new Date(d).toISOString().split('T')[0];
-                let now=new Date().toISOString().split('T')[0];
-                return `<input data-type="${key}" type="date" value="${due}" class="${due<now?"due_late":(due==now?"due_today":"")}">`;
+                let due = new Date(d).toISOString().split('T')[0];
+                let now = new Date().toISOString().split('T')[0];
+                return `<input data-type="${key}" type="date" ${row.progress==100?"disabled":""} value="${due}" class="${due > now || row.progress == 100 ? "" : (due == now ? "due_today" : "due_late")}">`;
             }
+        }
+    }
+
+    function refreshDate(key, row, el) {
+        let newrender = document.createElement("DIV");
+        newrender.innerHTML = renderDate(key)(row);
+        newrender = newrender.children[0];
+        let old = el.getAttributeNames();
+        for (let i = 0; i < old.length; i++) el.removeAttribute(old[i]);
+        let newatt = newrender.getAttributeNames();
+        for (let i = 0; i < newatt.length; i++) {
+            el.setAttribute(newatt[i], newrender.getAttribute(newatt[i]));
         }
     }
 
@@ -73,18 +85,10 @@
                     slice_id: getSlice(),
                     universe_id: getUniverse(),
                     timeentry_id: row.timeentry_id,
-                    due_date:d
+                    due_date: d
                 },
                 success() {
-                    let newrender=document.createElement("DIV");
-                    newrender.innerHTML=renderDate(key)(row);
-                    newrender=newrender.children[0];
-                    let old=event.target.getAttributeNames();
-                    for(let i=0; i<old.length; i++) event.target.removeAttribute(old[i]);
-                    let newatt=newrender.getAttributeNames();
-                    for(let i=0; i<newatt.length; i++) {
-                        event.target.setAttribute(newatt[i], newrender.getAttribute(newatt[i]));
-                    }
+                    refreshDate("due_date", row, event.target);
                 }
             })
         }
@@ -100,11 +104,11 @@
         }
     }
 
-    let prog=progress({root:document.querySelector('#mytasks .progress')});
+    let prog = progress({ root: document.querySelector('#mytasks .progress') });
 
     let table = smartTable({
         root: document.querySelector('#mytasks table'),
-        refresh(focus=false,text) {
+        refresh(focus = false, text) {
             if (isNaN(getSlice())) {
                 table.set([]);
                 tdiv.classList.add("none");
@@ -121,18 +125,18 @@
                     success(response) {
                         table.set(response);
                         if (focus) {
-                            let last=0;
-                            for(let i=0; i<response.length; i++) {
-                                if (response[i].timeentry_id>last) last=response[i].timeentry_id;
+                            let last = 0;
+                            for (let i = 0; i < response.length; i++) {
+                                if (response[i].timeentry_id > last) last = response[i].timeentry_id;
                             }
-                            let rows=table.get();
-                            for(let i=0; i<rows.length; i++) {
-                                if (rows[i].timeentry_id==last) {
+                            let rows = table.get();
+                            for (let i = 0; i < rows.length; i++) {
+                                if (rows[i].timeentry_id == last) {
                                     table.focus(i, text);
                                     break;
                                 }
                             }
-                        } 
+                        }
                         let sel = tdiv.querySelector(".selected");
                         if (sel != null) {
                             board.setBoard(sel.getAttribute("data-chat"));
@@ -167,7 +171,7 @@
                 onevent: {
                     render(event, row) {
                         if (slice.end_date != 0 || (slice.locked == 1 && row.creation == slice.start_date)) {
-                            event.target.children[0].disabled=true;
+                            event.target.children[0].disabled = true;
                         }
                     }
                 }
@@ -177,7 +181,7 @@
                 render(row) {
                     return mispaf.escape(new Date(row.creation).toLocaleDateString());
                 }
-            },            {
+            }, {
                 title: "Due/End Date",
                 render(row) {
                     return '<div class="dates">' + renderDate("due_date")(row) + "</div>";
@@ -212,6 +216,26 @@
                                 description: row.description,
                                 progress: row.progress,
                                 length: row.length
+                            },
+                            success() {
+                                if (row.due_date==null && row.progress!=100) return;
+                                if (row.due_date==null && row.progress==100) {
+                                    let due_el = event.target.parentElement.previousSibling.querySelector('button');
+                                    due_el.dispatchEvent(new Event('click'));
+                                    setTimeout(setDate,100);
+                                }
+                                if (row.due_date!=null) {
+                                    setDate();
+                                }
+                                function setDate() {
+                                    let due_el = event.target.parentElement.previousSibling.querySelector('input');
+                                    if (row['due_date'] == null) {
+                                        due_el.value = new Date().toISOString().split('T')[0];
+                                        due_el.dispatchEvent(new Event('change'));
+                                    } else {
+                                        refreshDate('due_date', row, due_el);
+                                    }
+                                }
                             }
                         })
                         prog.set(table.get());
@@ -295,7 +319,7 @@
                                     universe_id: getUniverse(),
                                 },
                                 success() {
-                                    if (selected == mispaf.parentElement(event.target,"tr").querySelector("[data-chat]").getAttribute("data-chat")) {
+                                    if (selected == mispaf.parentElement(event.target, "tr").querySelector("[data-chat]").getAttribute("data-chat")) {
                                         selected = null;
                                         board.setBoard(null);
                                     }
@@ -318,7 +342,7 @@
                     description: 'New Task'
                 },
                 success() {
-                    table.refresh(true,"New Task");
+                    table.refresh(true, "New Task");
                     prog.set(table.get());
                     mispaf.ajaxDefault.success();
                 }
@@ -372,6 +396,6 @@
         refreshSlices();
     });
     document.getElementById('universe').addEventListener('change', () => {
-        if (mispaf.page()=="mytasks") refreshSlices();
+        if (mispaf.page() == "mytasks") refreshSlices();
     });
 })();
