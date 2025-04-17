@@ -135,6 +135,12 @@ WHERE timeentry_id=? AND user_id=? AND slice_id=?
                             `).run(description, progress, length, entryid, userid, sliceid);
             }
         },
+        setEntryDueDate(userid, sliceid, entryid, due_date) {
+            return db.prepare(`
+UPDATE timeentries 
+SET due_date=?
+WHERE timeentry_id=? AND user_id=? AND slice_id=?`).run(due_date, entryid, userid, sliceid);
+        },
         deleteEntry(userid, sliceid, timeid) {
             return db.prepare(`
 DELETE FROM timeentries

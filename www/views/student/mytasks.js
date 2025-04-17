@@ -47,6 +47,45 @@
     function getSlice() {
         return parseInt(slicesSelect.value);
     }
+    
+    function renderDate(key) {
+        return function (row) {
+            let d = row[key];
+            if (d == null) {
+                return `<button data-type="${key}" class="btn btn-outline-secondary btn-sm">Set</button>`;
+            } else {
+                return `<input data-type="${key}" type="date" value="${new Date(d).toISOString().split('T')[0]}">`;
+            }
+        }
+    }
+
+    function manageDates() {
+        function onChange(event, row) {
+            let v = event.target.value;
+            let d = (v == "" ? null : v);
+            let key = event.target.getAttribute("data-type");
+            row[key] = d;
+            mispaf.ajax({
+                url: 'students/setEntryDueDate',
+                data: {
+                    slice_id: getSlice(),
+                    universe_id: getUniverse(),
+                    timeentry_id: row.timeentry_id,
+                    due_date:d
+                }
+            })
+        }
+        return {
+            async 'click:button'(event, row) {
+                let input = document.createElement("INPUT");
+                input.setAttribute("type", "date");
+                input.setAttribute("data-type", event.target.getAttribute("data-type"));
+                event.target.parentElement.replaceChild(input, event.target);
+                input.addEventListener('change', (event) => { onChange(event, row) });
+            },
+            'change:input': onChange
+        }
+    }
 
     let prog=progress({root:document.querySelector('#mytasks .progress')});
 
@@ -125,6 +164,12 @@
                 render(row) {
                     return mispaf.escape(new Date(row.creation).toLocaleDateString());
                 }
+            },            {
+                title: "Due/End Date",
+                render(row) {
+                    return '<div class="dates">' + renderDate("due_date")(row) + "</div>";
+                },
+                onevent: manageDates()
             },
             {
                 title: "Progress",
