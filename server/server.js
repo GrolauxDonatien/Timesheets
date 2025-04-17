@@ -6,19 +6,24 @@ const config = (() => {
     if (args.length > 0) {
         let js = args[args.length - 1];
         if (path.resolve(__filename) != path.resolve(js) && js.toLowerCase().endsWith(".js")) {
-            console.log("Config file is "+path.resolve(js));
-            return require(path.join("..", js));
+            console.log("Config file is " + path.resolve(js));
+            let conf = require(path.join("..", js));
+            console.log("DB file is " + conf.dbfile);
+            return conf;
         }
     }
-    console.log("Config file is "+path.resolve("./config.js"));
-    return require("./config.js");
+    console.log("Config file is " + path.resolve("./config.js"));
+    let conf=require("./config.js");
+    console.log("DB file is " + conf.dbfile);
+    return conf;
 })();
+const AsyncDatabase = require("promised-sqlite3").AsyncDatabase;
 
-const db = require("better-sqlite3")(config.dbfile);
 const jwt = require("jsonwebtoken");
 const { AsyncLocalStorage } = require('async_hooks');
 const asyncLocalStorage = new AsyncLocalStorage();
 
+let db, begin, commit, rollback;
 const server = express();
 let expressWs = null;
 let wsListeners = {};
@@ -61,9 +66,6 @@ const context = {
     config, model: {}, HTTPError
 }
 
-const begin = db.prepare('BEGIN');
-const commit = db.prepare('COMMIT');
-const rollback = db.prepare('ROLLBACK');
 
 const manager = (() => {
 
@@ -141,21 +143,7 @@ const manager = (() => {
         let controler;
 
         async function run(action, params) {
-            // execute action in its own transaction
-            if (db.inTransaction) {
-                return await controler[action](params);
-            } else {
-                begin.run();
-                try {
-                    let ret = await controler[action](params);
-                    commit.run();
-                    return ret;
-                } finally {
-                    if (db.inTransaction) {
-                        rollback.run();
-                    }
-                }
-            }
+            return await controler[action](params);
         }
 
         controler = controlerFn({
@@ -376,10 +364,20 @@ function loadControler(dir) {
     }
 }
 
-// auto load models & controlers
-loadModel("models");
-loadControler("controlers", true);
 
-if (config.port === undefined) config.port = 8080;
-server.listen(config.port);
-console.log("Server is running: http://localhost:" + config.port + config.virtualPath);
+async function run() {
+    // open DB
+    db = await AsyncDatabase.open(config.dbfile);
+
+    begin = await db.prepare('BEGIN');
+    commit = await db.prepare('COMMIT');
+    rollback = await db.prepare('ROLLBACK');
+    // auto load models & controlers
+    loadModel("models");
+    loadControler("controlers", true);
+
+    if (config.port === undefined) config.port = 8080;
+    server.listen(config.port);
+    console.log("Server is running: http://localhost:" + config.port + config.virtualPath);
+}
+run();

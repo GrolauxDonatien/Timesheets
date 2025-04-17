@@ -1,7 +1,9 @@
 const myArgs = process.argv.slice(2);
 const config=require("./server/config.js");
 const bcrypt = require("bcrypt");
-const db = require("better-sqlite3")(config.dbfile);
+const AsyncDatabase = require("promised-sqlite3").AsyncDatabase;
+
+let db;
 
 let email=(myArgs[0]||"").trim();
 let pass=(myArgs[1]||"").trim();
@@ -31,9 +33,10 @@ if (!valid) {
 }
 
 async function run() {
+    db = await AsyncDatabase.open(config.dbfile);
     let hash = await bcrypt.hash(pass, 10);
-    let superadmin=db.prepare("SELECT * FROM users WHERE admin=1").get()==null?1:0
-    db.prepare("INSERT INTO users(login,password, admin, superadmin, validated) VALUES (?,?,?,?,?)").run(email, hash, 1, superadmin, 1);
+    let superadmin=(await (await db.prepare("SELECT * FROM users WHERE admin=1")).get())==null?1:0
+    await (await db.prepare("INSERT INTO users(login,password, admin, superadmin, validated) VALUES (?,?,?,?,?)")).run(email, hash, 1, superadmin, 1);
     console.log(`Admin ${email} was inserted successfully.`);
     if (superadmin==1) console.log(`As first admin, ${email} was promoted to superadmin.`);
     process.exit(0);    
