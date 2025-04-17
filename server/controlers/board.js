@@ -7,53 +7,53 @@ module.exports = ({ HTTPError, model, user, assert, send, broadcast, addListener
 
     let conversations = {};
 
-    function isAuthorized(chat) {
+    async function isAuthorized(chat) {
         let authorized = false;
         if (user.superadmin === true) {
             return true; // accept everything
         } else if (user.admin === true) {
             if (chat.startsWith("g")) {
                 let task_id = chat.substring(1);
-                let task = model.groups.getTaskById(task_id);
+                let task = await model.groups.getTaskById(task_id);
                 if (task == null) return true; // deleted, give access
-                let universe = model.groups.getUniverseWithAccessRight(task.group_id, user.user_id);
+                let universe = await model.groups.getUniverseWithAccessRight(task.group_id, user.user_id);
                 if (universe != null) {
                     authorized = true; // accept for now, will check for own universe later
                 } else {
-                    universe = model.groups.getUniverse(task.group_id);
+                    universe = await model.groups.getUniverse(task.group_id);
                     if (universe == null) authorized = true; // deleted group, give access
                 }
             } else if (chat.startsWith("t")) {
                 let te_id = chat.substring(1);
-                let universe = model.universes.getByTimeEntryWithAccessRight(te_id, user.user_id);
+                let universe = await model.universes.getByTimeEntryWithAccessRight(te_id, user.user_id);
                 if (universe != null) {
                     authorized = true; // accept for now, will check for own universe later
                 } else {
-                    universe=model.universes.getByTimeEntry(te_id);
+                    universe=await model.universes.getByTimeEntry(te_id);
                     if (universe==null) authorized=true; // delete task, give access
                 }
             }
         } else if (chat.startsWith("g")) {
             let task_id = chat.substring(1);
-            let task = model.groups.getTaskById(task_id);
+            let task = await model.groups.getTaskById(task_id);
             if (task == null) return false;
-            let universe = model.groups.getUniverse(task.group_id);
+            let universe = await model.groups.getUniverse(task.group_id);
             if (universe.universe_id != universe.universe_id) {
                 authorized = false;
             } else {
-                if (!authorized && model.students.canUpdateTask(user.user_id, task_id, universe.universe_id)) {
+                if (!authorized && await model.students.canUpdateTask(user.user_id, task_id, universe.universe_id)) {
                     authorized = true;
                 }
             }
         } else if (chat.startsWith("t")) {
             let time_id = chat.substring(1);
-            let time = model.students.getEntryInSameGroup(user.user_id, time_id);
+            let time = await model.students.getEntryInSameGroup(user.user_id, time_id);
             if (time == null) return false;
-            let universe = model.universes.getByTimeEntry(time.timeentry_id);
+            let universe = await model.universes.getByTimeEntry(time.timeentry_id);
             if (universe == null) {
                 authorized = false;
             } else {
-                if (!authorized && model.students.canUpdateSlice(user.user_id, time.slice_id, universe.universe_id)) { // the user is allowed to edit this slice
+                if (!authorized && await model.students.canUpdateSlice(user.user_id, time.slice_id, universe.universe_id)) { // the user is allowed to edit this slice
                     authorized = true;
                 }
             }
@@ -62,8 +62,8 @@ module.exports = ({ HTTPError, model, user, assert, send, broadcast, addListener
     }
 
     return {
-        get(params) {
-            if (!isAuthorized(params.chat, params.universe_id)) {
+        async get(params) {
+            if (!await isAuthorized(params.chat, params.universe_id)) {
                 throw new HTTPError("Access Denied", 403);
             }
 
@@ -81,10 +81,10 @@ module.exports = ({ HTTPError, model, user, assert, send, broadcast, addListener
                 }
                 addListener(params.chat, cb);
             }
-            return model.board.getChat(user.user_id, params.chat);
+            return await model.board.getChat(user.user_id, params.chat);
         },
-        forget(params) {
-            if (!isAuthorized(params.chat)) {
+        async forget(params) {
+            if (!await isAuthorized(params.chat)) {
                 throw new HTTPError("Access Denied", 403);
             }
             let sid = ws().sid;
@@ -94,27 +94,27 @@ module.exports = ({ HTTPError, model, user, assert, send, broadcast, addListener
                 delete conversations[sid];
             }
         },
-        create(params) {
-            if (!isAuthorized(params.chat)) {
+        async create(params) {
+            if (!await isAuthorized(params.chat)) {
                 throw new HTTPError("Access Denied", 403);
             }
 
             if ("file" in params) {
-                let msg = model.board.add(user.user_id, params.chat, null, params.file);
+                let msg = await model.board.add(user.user_id, params.chat, null, params.file);
                 broadcast(params.chat, msg);
                 return msg;
             } else if ("msg" in params) {
-                let msg = model.board.add(user.user_id, params.chat, params.msg);
+                let msg = await model.board.add(user.user_id, params.chat, params.msg);
                 broadcast(params.chat, msg);
                 return msg;
             }
         },
-        count(params) {
-            if (!isAuthorized(params.chat)) {
+        async count(params) {
+            if (!await isAuthorized(params.chat)) {
                 throw new HTTPError("Access Denied", 403);
             }
 
-            model.board.count(user.user_id, params.chat, params.count);
+            await model.board.count(user.user_id, params.chat, params.count);
         }
     }
 }

@@ -1,5 +1,5 @@
 module.exports={
-    dbfile:"timesheets.db",
+    dbfile:"demo.db",
     emails:["@domain.com"],
     secret:"changethissecretandkeepitprotected",
     port:8080,

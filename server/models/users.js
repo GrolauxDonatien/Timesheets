@@ -13,18 +13,18 @@ module.exports = ({ db }) => {
     }
 
     let ret={
-        register(user) {
-            const create = db.prepare("INSERT INTO users(login,password, admin, superadmin, validated) VALUES (?,?,0,0,1)");
-            const result = create.run(user.login, user.password);
-            return result.lastInsertRowid;
+        async register(user) {
+            const create = await db.prepare("INSERT INTO users(login,password, admin, superadmin, validated) VALUES (?,?,0,0,1)");
+            const result = await create.run(user.login, user.password);
+            return result.lastID;
         },
-        getByLogin(login) {
-            return db.prepare("SELECT * FROM users WHERE login=?").get(login);
+        async getByLogin(login) {
+            return await (await db.prepare("SELECT * FROM users WHERE login=?")).get(login);
         },
-        getById(id) {
-            return db.prepare("SELECT * FROM users WHERE user_id=?").get(id);
+        async getById(id) {
+            return await (await db.prepare("SELECT * FROM users WHERE user_id=?")).get(id);
         },
-        list(search, uid, cond = null) {
+        async list(search, uid, cond = null) {
             if (uid !== undefined) {
                 if (cond == null) {
                     cond = "";
@@ -34,33 +34,33 @@ module.exports = ({ db }) => {
                 cond += `(EXISTS (SELECT 1 FROM universes WHERE universes.creator_id=${uid} AND universes.universe_id=universesusers.universe_id) OR EXISTS (SELECT 1 FROM assistants WHERE assistants.universe_id=universesusers.universe_id AND assistants.user_id=${uid}))`;
             }
             if ("universe_id" in search) {
-                return db.prepare(`
+                return await (await db.prepare(`
 SELECT DISTINCT users.user_id, users.login, users.admin, users.validated 
 FROM users, universesusers 
 WHERE users.user_id=universesusers.user_id AND universesusers.universe_id=?
 ${cond == null ? "" : "AND " + cond}
-`).all(search.universe_id)
+`)).all(search.universe_id)
             } else {
-                return db.prepare(`
+                return await (await db.prepare(`
 SELECT DISTINCT users.user_id, users.login, users.admin, users.validated 
 FROM users, universesusers 
 WHERE users.user_id=universesusers.user_id
 ${cond == null ? "" : "AND " + cond}
-ORDER BY users.login`).all();
+ORDER BY users.login`)).all();
             }
         },
-        listu(search, uid) {
+        async listu(search, uid) {
             let cond = undefined;
             if (uid !== undefined) {
                 cond = `(universes.creator_id=${uid} OR EXISTS (SELECT 1 FROM assistants WHERE assistants.universe_id=universes.universe_id AND assistants.user_id=${uid}))`;
             }
-            let all = db.prepare(`
+            let all = await (await db.prepare(`
 SELECT users.user_id, users.login, users.admin, users.validated, universes.universe_id, universes.name
 FROM users LEFT JOIN universesusers ON users.user_id=universesusers.user_id
 LEFT JOIN universes ON universes.universe_id=universesusers.universe_id
 ${cond === undefined ? "" : "AND " + cond}
 ORDER BY users.login
-`).all()
+`)).all()
             let ret = [];
             let cur;
             let prev = { user_id: null };
@@ -100,18 +100,18 @@ ORDER BY users.login
             }
             return ret;
         },
-        getUserByLogin(login, uid) {
+        async getUserByLogin(login, uid) {
             let cond = undefined;
             if (uid !== undefined) {
                 cond = `(universes.creator_id=${uid} OR EXISTS (SELECT 1 FROM assistants WHERE assistants.universe_id=universes.universe_id AND assistants.user_id=${uid}))`;
             }
-            let all = db.prepare(`
+            let all = await (await db.prepare(`
 SELECT users.user_id, users.login, users.admin, users.validated, universes.universe_id, universes.name
 FROM users LEFT JOIN universesusers ON users.user_id=universesusers.user_id
 LEFT JOIN universes ON universes.universe_id=universesusers.universe_id
 ${cond === undefined ? "" : "AND " + cond}
 WHERE users.login=?
-`).all(login)
+`)).all(login)
             let ret = [];
             let cur;
             let prev = { user_id: null };
@@ -134,60 +134,60 @@ WHERE users.login=?
             }
             return ret.length>0?ret[0]:null;
         },
-        delete(id) {
-            return db.prepare("DELETE FROM users WHERE user_id=?").run(id);
+        async delete(id) {
+            return await (await db.prepare("DELETE FROM users WHERE user_id=?")).run(id);
         },
-        wipe(id) {
+        async wipe(id) {
             // do not wipe universes created by this user, instead just remove its owner
-            db.prepare("UPDATE universes SET creator_id=NULL where creator_id=?").run(id);
-            db.prepare("DELETE FROM universesusers WHERE user_id=?").run(id);
-            db.prepare("DELETE FROM timeentries WHERE user_id=?").run(id);
-            db.prepare("DELETE FROM usersgroups WHERE user_id=?").run(id);
-            db.prepare("DELETE FROM assistants WHERE user_id=?").run(id);
-            return db.prepare("DELETE FROM users WHERE user_id=?").run(id);
+            await (await db.prepare("UPDATE universes SET creator_id=NULL where creator_id=?")).run(id);
+            await (await db.prepare("DELETE FROM universesusers WHERE user_id=?")).run(id);
+            await (await db.prepare("DELETE FROM timeentries WHERE user_id=?")).run(id);
+            await (await db.prepare("DELETE FROM usersgroups WHERE user_id=?")).run(id);
+            await (await db.prepare("DELETE FROM assistants WHERE user_id=?")).run(id);
+            return await (await db.prepare("DELETE FROM users WHERE user_id=?")).run(id);
         },
-        updatePassword(id, password) {
-            db.prepare("UPDATE users SET password=? WHERE user_id=?").run(password, id);
+        async updatePassword(id, password) {
+            await (await db.prepare("UPDATE users SET password=? WHERE user_id=?")).run(password, id);
         },
-        updateAdmin(id, admin) {
-            db.prepare("UPDATE users SET admin=? WHERE user_id=?").run(admin?1:0, id);
+        async updateAdmin(id, admin) {
+            await (await db.prepare("UPDATE users SET admin=? WHERE user_id=?")).run(admin?1:0, id);
         },
-        setValidated(id, validated) {
-            return db.prepare("UPDATE users SET validated=? WHERE user_id=? AND admin=0").run(validated, id);
+        async setValidated(id, validated) {
+            return await (await db.prepare("UPDATE users SET validated=? WHERE user_id=? AND admin=0")).run(validated, id);
         },
-        setUniverses(id, list, caid) {
+        async setUniverses(id, list, caid) {
             let o = {};
             for (let i = 0; i < list.length; i++) o[list[i]] = true;
             let all;
             if (caid === undefined) {
-                all = db.prepare(`SELECT * FROM universesusers WHERE user_id=?`).all(id);
+                all = await (await db.prepare(`SELECT * FROM universesusers WHERE user_id=?`)).all(id);
             } else {
-                all = db.prepare(`
+                all = await (await db.prepare(`
 SELECT universesusers.* 
 FROM universesusers INNER JOIN universes ON universesusers.universe_id=universes.universe_id
-WHERE universesusers.user_id=? AND (universes.creator_id=? OR EXISTS (SELECT 1 FROM assistants WHERE assistants.universe_id=universes.universe_id AND assistants.user_id=?))`).all(id, caid, caid);
+WHERE universesusers.user_id=? AND (universes.creator_id=? OR EXISTS (SELECT 1 FROM assistants WHERE assistants.universe_id=universes.universe_id AND assistants.user_id=?))`)).all(id, caid, caid);
             }
             for (let i = 0; i < all.length; i++) {
                 if (all[i].universe_id in o) {
                     delete o[all[i].universe_id];
                 } else {
-                    db.prepare(`DELETE FROM universesusers WHERE universeuser_id=?`).run(all[i].universeuser_id);
+                    await (await db.prepare(`DELETE FROM universesusers WHERE universeuser_id=?`)).run(all[i].universeuser_id);
                 }
             }
             for (let k in o) {
-                db.prepare(`INSERT INTO universesusers(user_id, universe_id) VALUES (?,?) `).run(id, k);
+                await (await db.prepare(`INSERT INTO universesusers(user_id, universe_id) VALUES (?,?) `)).run(id, k);
             }
             return true;
         },
-        getAllUniverses(id) {
-            return db.prepare(`
+        async getAllUniverses(id) {
+            return await (await db.prepare(`
 SELECT universes.*
 FROM universes INNER JOIN universesusers ON universes.universe_id=universesusers.universe_id
 AND universesusers.user_id=?
-            `).all(id);
+            `)).all(id);
         },
-        listUsersNotInGroups(uid) {
-            return db.prepare(`
+        async listUsersNotInGroups(uid) {
+            return await (await db.prepare(`
 SELECT users.* 
 FROM users INNER JOIN universesusers ON users.user_id=universesusers.user_id
 WHERE universesusers.universe_id=? AND users.validated=1
@@ -195,9 +195,9 @@ AND NOT EXISTS (
     SELECT * 
     FROM usersgroups INNER JOIN groups ON usersgroups.group_id=groups.group_id
     WHERE groups.universe_id=universesusers.universe_id AND usersgroups.user_id=users.user_id)
-ORDER BY users.login ASC`).all(uid);
+ORDER BY users.login ASC`)).all(uid);
         },
-        boards(uid, deleted=false, caid) {
+        async boards(uid, deleted=false, caid) {
             let user = ret.getById(uid);
             if (user == null) return [];
             let name = boardName(user.login);
@@ -277,9 +277,9 @@ HAVING COUNT(messages.msg_id)>0
 ORDER BY chat ASC
             `
             if (deleted) {
-                return db.prepare(query).all(uid, uid, name, name);
+                return await (await db.prepare(query)).all(uid, uid, name, name);
             } else {
-                return db.prepare(query).all(uid, uid);
+                return await (await db.prepare(query)).all(uid, uid);
             }
         }
     }
