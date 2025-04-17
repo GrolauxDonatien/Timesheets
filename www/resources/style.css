@@ -598,3 +598,11 @@ h3 {
     box-shadow: 1px 1px 1px 1px darkgray;
     margin-left: 10px;
 }
+
+.due_today {
+    background-color:yellow;
+}
+
+.due_late {
+    background-color:red;
+}

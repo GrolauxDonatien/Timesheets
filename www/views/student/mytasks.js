@@ -54,7 +54,9 @@
             if (d == null) {
                 return `<button data-type="${key}" class="btn btn-outline-secondary btn-sm">Set</button>`;
             } else {
-                return `<input data-type="${key}" type="date" value="${new Date(d).toISOString().split('T')[0]}">`;
+                let due=new Date(d).toISOString().split('T')[0];
+                let now=new Date().toISOString().split('T')[0];
+                return `<input data-type="${key}" type="date" value="${due}" class="${due<now?"due_late":(due==now?"due_today":"")}">`;
             }
         }
     }
@@ -72,6 +74,17 @@
                     universe_id: getUniverse(),
                     timeentry_id: row.timeentry_id,
                     due_date:d
+                },
+                success() {
+                    let newrender=document.createElement("DIV");
+                    newrender.innerHTML=renderDate(key)(row);
+                    newrender=newrender.children[0];
+                    let old=event.target.getAttributeNames();
+                    for(let i=0; i<old.length; i++) event.target.removeAttribute(old[i]);
+                    let newatt=newrender.getAttributeNames();
+                    for(let i=0; i<newatt.length; i++) {
+                        event.target.setAttribute(newatt[i], newrender.getAttribute(newatt[i]));
+                    }
                 }
             })
         }

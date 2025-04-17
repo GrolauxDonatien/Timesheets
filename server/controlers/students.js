@@ -40,6 +40,20 @@ module.exports = ({ HTTPError, model, user, assert }) => {
                 throw new HTTPError("Cannot update task", 403);
             }
         },
+        async setEntryDueDate(params) {
+            if (await model.students.canUpdateSlice(user.user_id, params.slice_id, params.universe_id)) {
+                let slice = await model.slices.getByID(params.slice_id);
+                if (slice.locked == 1) {
+                    let entry=await model.students.getEntry(user.userid, params.timeentry_id);
+                    if (entry!=null && entry.creation<=slice.start_date) {
+                        return await model.students.setEntryDueDate(user.user_id, params.slice_id, params.timeentry_id, params.due_date);
+                    }
+                } 
+                return await model.students.setEntryDueDate(user.user_id, params.slice_id, params.timeentry_id, params.due_date);
+            } else {
+                throw new HTTPError("Cannot update task", 403);
+            }
+        },
         async deleteEntry(params) {
             let entry = await model.students.getEntry(user.user_id, params.timeentry_id);
             if (entry != null // got an entry
